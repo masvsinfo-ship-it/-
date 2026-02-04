@@ -1,357 +1,269 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { createRoot } from 'react-dom/client';
 import { GoogleGenAI } from "@google/genai";
 
-// Types
-enum Language { BN = 'bn', EN = 'en' }
-enum Tab { VOL = 'VOL', MUR = 'MUR', MET = 'MET', PCS = 'PCS', AI = 'AI', HIS = 'HIS' }
-
-const translations = {
-  [Language.BN]: {
-    appName: 'পাথরের হিসাব', groupName: 'কারিনা গ্রুপ', calc: 'হিসাব করুন',
-    length: 'দৈর্ঘ্য (মি)', width: 'প্রস্থ (মি)', thick: 'পুরুত্ব (সেমি)', pieces: 'পিস',
-    murubba: 'মুরুব্বা', meter: 'মিটার', rateMur: 'দর (মুরুব্বা)', rateMet: 'দর (মিটার)',
-    res: 'ফলাফল', tMur: 'মোট মুরুব্বা', tMet: 'মোট মিটার', tPcs: 'মোট পিস',
-    pMur: 'মুরুব্বা দাম', pMet: 'মিটার দাম', tVol: 'মোট ভলিউম (m³)', 
-    his: 'হিস্টোরি', empty: 'কোন তথ্য নেই', ask: 'AI জিজ্ঞাসা',
-    tabs: { [Tab.VOL]: 'ভলিউম', [Tab.MUR]: 'মুরুব্বা', [Tab.MET]: 'মিটার', [Tab.PCS]: 'পিস', [Tab.AI]: 'এআই', [Tab.HIS]: 'হিস্টোরি' }
-  },
-  [Language.EN]: {
-    appName: 'Stone Calc', groupName: 'Carina Group', calc: 'Calculate',
-    length: 'Length (m)', width: 'Width (m)', thick: 'Thickness (cm)', pieces: 'Pieces',
-    murubba: 'Murubba', meter: 'Meter', rateMur: 'Rate (Murubba)', rateMet: 'Rate (Meter)',
-    res: 'Result', tMur: 'Total Murubba', tMet: 'Total Meter', tPcs: 'Total Pieces',
-    pMur: 'Price (Murubba)', pMet: 'Price (Meter)', tVol: 'Total Vol (m³)',
-    his: 'History', empty: 'No Data', ask: 'Ask AI',
-    tabs: { [Tab.VOL]: 'Volume', [Tab.MUR]: 'Murubba', [Tab.MET]: 'Meter', [Tab.PCS]: 'Piece', [Tab.AI]: 'AI', [Tab.HIS]: 'History' }
-  }
-};
-
-const App = () => {
-  const [lang, setLang] = useState<Language>(Language.BN);
-  const [activeTab, setActiveTab] = useState<Tab>(Tab.VOL);
-  const [history, setHistory] = useState<any[]>(() => {
-    const saved = localStorage.getItem('stone_history_v4');
-    return saved ? JSON.parse(saved) : [];
-  });
-
-  const t = translations[lang];
-
-  useEffect(() => {
-    localStorage.setItem('stone_history_v4', JSON.stringify(history));
-  }, [history]);
-
-  const addHistory = (type: string, results: any) => {
-    const item = { id: Date.now(), time: new Date().toLocaleTimeString(), type, results };
-    setHistory(prev => [item, ...prev].slice(0, 20));
-  };
-
-  return (
-    <div className="min-h-screen pb-24 flex flex-col max-w-md mx-auto bg-white shadow-2xl shadow-slate-200">
-      {/* Header */}
-      <header className="bg-white px-6 pt-10 pb-4 border-b border-slate-50 sticky top-0 z-50">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-[#00a651] rounded-2xl flex items-center justify-center shadow-lg shadow-green-100">
-              <span className="text-white text-xl">💎</span>
-            </div>
-            <div>
-              <h1 className="text-[#1e293b] font-bold text-lg leading-tight">{t.appName}</h1>
-              <p className="text-slate-400 text-[10px] font-bold uppercase tracking-tighter">{t.groupName}</p>
-            </div>
-          </div>
-          <button 
-            onClick={() => setLang(lang === Language.BN ? Language.EN : Language.BN)}
-            className="bg-slate-50 px-3 py-2 rounded-xl border border-slate-100 font-bold text-xs text-slate-600 active:scale-95 transition-all"
-          >
-            {lang === Language.BN ? 'EN 🇺🇸' : 'BN 🇧🇩'}
-          </button>
-        </div>
-      </header>
-
-      {/* Navigation */}
-      <nav className="bg-white border-b border-slate-100 sticky top-[90px] z-40 py-4 overflow-x-auto no-scrollbar">
-        <div className="flex gap-2 px-4 min-w-max">
-          {Object.values(Tab).map(tab => (
-            <button 
-              key={tab} 
-              onClick={() => setActiveTab(tab)}
-              className={`flex items-center gap-2 px-5 py-3 rounded-2xl font-bold text-xs transition-all ${
-                activeTab === tab ? 'bg-[#00a651] text-white shadow-lg shadow-green-100 scale-105' : 'bg-slate-50 text-slate-400 border border-slate-100'
-              }`}
-            >
-              {t.tabs[tab]}
-            </button>
-          ))}
-        </div>
-      </nav>
-
-      {/* Content */}
-      <main className="flex-grow p-5 animate-fadeIn">
-        {activeTab === Tab.VOL && <VolumeCalc t={t} onSave={addHistory} />}
-        {activeTab === Tab.MUR && <MurubbaToPiece t={t} onSave={addHistory} />}
-        {activeTab === Tab.MET && <MeterToPiece t={t} onSave={addHistory} />}
-        {activeTab === Tab.PCS && <PieceToAll t={t} onSave={addHistory} />}
-        {activeTab === Tab.AI && <GeminiAssistant t={t} lang={lang} />}
-        {activeTab === Tab.HIS && <HistoryView t={t} history={history} setHistory={setHistory} />}
-      </main>
-
-      {/* Developer Badge */}
-      <div className="p-8 text-center bg-white mx-5 mt-10 rounded-[40px] border border-slate-100 shadow-sm mb-10">
-          <p className="text-slate-300 text-[10px] font-bold uppercase tracking-widest mb-4">Developed by Billal</p>
-          <div className="flex justify-center gap-6">
-              <a href="https://wa.me/8801735308795" className="w-12 h-12 bg-[#25d366] text-white rounded-2xl flex items-center justify-center text-xl shadow-lg shadow-green-100 active:scale-90 transition-all">W</a>
-              <a href="https://fb.com/billal8795" className="w-12 h-12 bg-[#1877f2] text-white rounded-2xl flex items-center justify-center text-xl shadow-lg shadow-blue-100 active:scale-90 transition-all">F</a>
-          </div>
-      </div>
-
-      <footer className="fixed bottom-0 left-0 right-0 bg-white/80 backdrop-blur-md border-t border-slate-50 py-3 text-center z-50 max-w-md mx-auto">
-        <p className="text-[9px] font-bold text-slate-400 tracking-widest uppercase">Carina Group Stone Solution © 2024</p>
-      </footer>
-    </div>
-  );
-};
-
-// Sub-components
-const VolumeCalc = ({ t, onSave }: any) => {
-  const [val, setVal] = useState({ l: '1', w: '1', t: '3', p: '1', rM: '' });
-  const [res, setRes] = useState<any>(null);
-
-  const calculate = () => {
-    const area = parseFloat(val.l) * parseFloat(val.w) * parseFloat(val.p);
-    const vol = area * (parseFloat(val.t) / 100);
-    const met = parseFloat(val.l) * parseFloat(val.p);
-    const price = val.rM ? area * parseFloat(val.rM) : null;
-    const result = { mur: area, met, vol, price };
-    setRes(result);
-    onSave('ভলিউম', result);
-  };
-
-  return (
-    <div className="space-y-6">
-      <div className="app-card p-6 grid grid-cols-2 gap-4">
-        <Input label={t.length} val={val.l} onChange={v => setVal({...val, l: v})} />
-        <Input label={t.width} val={val.w} onChange={v => setVal({...val, w: v})} />
-        <Input label={t.thick} val={val.t} onChange={v => setVal({...val, t: v})} />
-        <Input label={t.pieces} val={val.p} onChange={v => setVal({...val, p: v})} color="text-green-600" />
-        <div className="col-span-2">
-          <Input label={t.rateMur} val={val.rM} onChange={v => setVal({...val, rM: v})} placeholder="ঐচ্ছিক" />
-        </div>
-        <button onClick={calculate} className="col-span-2 bg-[#00a651] text-white py-4 rounded-2xl font-bold shadow-lg shadow-green-100 active:scale-95 transition-all mt-2">{t.calc}</button>
-      </div>
-      {res && (
-        <div className="grid grid-cols-2 gap-4 animate-fadeIn">
-          <div className="bg-[#00a651] text-white p-6 rounded-3xl text-center shadow-lg shadow-green-50">
-            <p className="text-[10px] font-bold opacity-70 uppercase mb-1">{t.tMur}</p>
-            <h3 className="text-3xl font-black">{res.mur.toFixed(2)}</h3>
-          </div>
-          <div className="bg-white border border-slate-100 p-6 rounded-3xl text-center">
-            <p className="text-[10px] font-bold text-slate-400 uppercase mb-1">{t.tMet}</p>
-            <h3 className="text-3xl font-black text-slate-700">{res.met.toFixed(2)}</h3>
-          </div>
-          {res.price && (
-            <div className="col-span-2 bg-amber-500 text-white p-5 rounded-3xl text-center shadow-lg shadow-amber-50">
-              <p className="text-[10px] font-bold opacity-80 uppercase mb-1">{t.pMur}</p>
-              <h3 className="text-4xl font-black">{res.price.toLocaleString()} ৳</h3>
-            </div>
-          )}
-          <div className="col-span-2 bg-slate-800 text-white p-3 rounded-2xl text-center text-xs">
-            {t.tVol}: {res.vol.toFixed(3)} m³
-          </div>
-        </div>
-      )}
-    </div>
-  );
-};
-
-const MurubbaToPiece = ({ t, onSave }: any) => {
-  const [val, setVal] = useState({ l: '0.60', w: '0.30', m: '25' });
-  const [res, setRes] = useState<any>(null);
-  const calculate = () => {
-    const pcs = Math.ceil(parseFloat(val.m) / (parseFloat(val.l) * parseFloat(val.w)));
-    setRes(pcs);
-    onSave('মুরুব্বা → পিস', { pcs, mur: parseFloat(val.m) });
-  };
-  return (
-    <div className="space-y-6">
-      <div className="app-card p-6 grid grid-cols-2 gap-4">
-        <Input label={t.length} val={val.l} onChange={v => setVal({...val, l: v})} />
-        <Input label={t.width} val={val.w} onChange={v => setVal({...val, w: v})} />
-        <div className="col-span-2">
-          <Input label={t.murubba} val={val.m} onChange={v => setVal({...val, m: v})} />
-        </div>
-        <button onClick={calculate} className="col-span-2 bg-blue-600 text-white py-4 rounded-2xl font-bold shadow-lg active:scale-95 transition-all mt-2">{t.calc}</button>
-      </div>
-      {res && (
-        <div className="bg-blue-600 text-white p-10 rounded-[40px] text-center shadow-xl animate-fadeIn">
-            <p className="text-xs font-bold opacity-70 uppercase mb-2">{t.tPcs}</p>
-            <h3 className="text-6xl font-black">{res}</h3>
-        </div>
-      )}
-    </div>
-  );
-};
-
-const MeterToPiece = ({ t, onSave }: any) => {
-  const [val, setVal] = useState({ l: '0.60', m: '25' });
-  const [res, setRes] = useState<any>(null);
-  const calculate = () => {
-    const pcs = Math.ceil(parseFloat(val.m) / parseFloat(val.l));
-    setRes(pcs);
-    onSave('মিটার → পিস', { pcs, met: parseFloat(val.m) });
-  };
-  return (
-    <div className="space-y-6">
-      <div className="app-card p-6 grid grid-cols-2 gap-4">
-        <Input label={t.length} val={val.l} onChange={v => setVal({...val, l: v})} />
-        <Input label={t.meter} val={val.m} onChange={v => setVal({...val, m: v})} />
-        <button onClick={calculate} className="col-span-2 bg-indigo-600 text-white py-4 rounded-2xl font-bold shadow-lg active:scale-95 transition-all mt-2">{t.calc}</button>
-      </div>
-      {res && (
-        <div className="bg-indigo-600 text-white p-10 rounded-[40px] text-center shadow-xl animate-fadeIn">
-            <p className="text-xs font-bold opacity-70 uppercase mb-2">{t.tPcs}</p>
-            <h3 className="text-6xl font-black">{res}</h3>
-        </div>
-      )}
-    </div>
-  );
-};
-
-const PieceToAll = ({ t, onSave }: any) => {
-  const [val, setVal] = useState({ l: '0.60', w: '0.30', p: '100' });
-  const [res, setRes] = useState<any>(null);
-  const calculate = () => {
-    const l = parseFloat(val.l);
-    const w = parseFloat(val.w);
-    const p = parseFloat(val.p);
-    const mur = p * l * w;
-    const met = p * l;
-    setRes({ mur, met });
-    onSave('পিস → অল', { mur, met, pcs: p });
-  };
-  return (
-    <div className="space-y-6">
-      <div className="app-card p-6 grid grid-cols-2 gap-4">
-        <Input label={t.length} val={val.l} onChange={v => setVal({...val, l: v})} />
-        <Input label={t.width} val={val.w} onChange={v => setVal({...val, w: v})} />
-        <div className="col-span-2">
-          <Input label={t.pieces} val={val.p} onChange={v => setVal({...val, p: v})} color="text-red-500" />
-        </div>
-        <button onClick={calculate} className="col-span-2 bg-red-600 text-white py-4 rounded-2xl font-bold shadow-lg active:scale-95 transition-all mt-2">{t.calc}</button>
-      </div>
-      {res && (
-        <div className="grid grid-cols-2 gap-4 animate-fadeIn">
-          <div className="bg-[#00a651] text-white p-6 rounded-3xl text-center shadow-lg">
-            <p className="text-[10px] font-bold opacity-70 uppercase mb-1">{t.tMur}</p>
-            <h3 className="text-3xl font-black">{res.mur.toFixed(2)}</h3>
-          </div>
-          <div className="bg-white border border-slate-100 p-6 rounded-3xl text-center">
-            <p className="text-[10px] font-bold text-slate-400 uppercase mb-1">{t.tMet}</p>
-            <h3 className="text-3xl font-black text-slate-700">{res.met.toFixed(2)}</h3>
-          </div>
-        </div>
-      )}
-    </div>
-  );
-};
-
-const GeminiAssistant = ({ t, lang }: any) => {
-  const [prompt, setPrompt] = useState('');
-  const [response, setResponse] = useState('');
-  const [loading, setLoading] = useState(false);
-
-  const askAI = async () => {
-    if (!prompt.trim()) return;
-    setLoading(true);
-    setResponse('');
-    try {
-      const ai = new GoogleGenAI({ apiKey: process.env.API_KEY || '' });
-      const result = await ai.models.generateContent({
-        model: 'gemini-3-flash-preview',
-        contents: `You are a stone construction expert. Helpful, accurate, and concise. User asks in ${lang}: ${prompt}. Focus on stone measurements, Murubba, Meter, and Piece concepts. Answer in ${lang}.`,
-      });
-      setResponse(result.text || 'No response.');
-    } catch (e) {
-      setResponse('Error connecting to AI. Please check your API key.');
-    } finally {
-      setLoading(false);
+const translations: Record<string, any> = {
+    bn: {
+        appTitle: "পাথর ক্যালকুলেটর",
+        brand: "KARINA GROUP",
+        scrollingMsg: "নির্ভুল হিসাবের নিশ্চয়তা - কারিনা গ্রুপ। এই সফটওয়্যার সবার জন্য ফ্রি তাই কেউ এটা বিক্রির চেষ্টা করবেন না।",
+        toMurubba: "মাপ থেকে মুরুব্বা",
+        toMurubbaFromPieces: "পিস থেকে মুরুব্বা",
+        toPieces: "মুরুব্বা থেকে পিস",
+        toPiecesFromMeter: "মিটার থেকে পিস",
+        length: "দৈর্ঘ্য (মিটার)",
+        width: "প্রস্থ (মিটার)",
+        thickness: "পুরুত্ব (সেমি)",
+        quantityPieces: "পরিমাণ (পিস)",
+        quantityMurubba: "মুরুব্বা",
+        quantityMeter: "লম্বা (মিটার)",
+        price: "ইউনিট দর (ঐচ্ছিক)",
+        calculate: "হিসাব করুন",
+        totalMurubba: "মোট মুরুব্বা",
+        totalPieces: "মোট পিস",
+        totalPrice: "মোট আনুমানিক মূল্য",
+        aiAdvice: "AI বিশেষজ্ঞ পরামর্শ",
+        getAdvice: "পরামর্শ দেখুন",
+        history: "পূর্ববর্তী হিসাবসমূহ",
+        clear: "সব মুছুন",
+        rights: "কারিনা গ্রুপ • ২০২৬ সর্বস্বত্ব সংরক্ষিত"
+    },
+    en: {
+        appTitle: "Stone Calculator",
+        brand: "KARINA GROUP",
+        scrollingMsg: "Accurate Stone Calculations - KARINA GROUP. This tool is free, please do not sell it.",
+        toMurubba: "Measure to Murubba",
+        toMurubbaFromPieces: "Pieces to Murubba",
+        toPieces: "Murubba to Pieces",
+        toPiecesFromMeter: "Meter to Pieces",
+        length: "Length (Meter)",
+        width: "Width (Meter)",
+        thickness: "Thickness (cm)",
+        quantityPieces: "Quantity (Pieces)",
+        quantityMurubba: "Murubba",
+        quantityMeter: "Length (Meter)",
+        price: "Unit Price (Optional)",
+        calculate: "Calculate",
+        totalMurubba: "Total Murubba",
+        totalPieces: "Total Pieces",
+        totalPrice: "Total Estimated Price",
+        aiAdvice: "AI Expert Advice",
+        getAdvice: "Get Advice",
+        history: "History",
+        clear: "Clear All",
+        rights: "Karina Group • 2026 All Rights Reserved"
     }
-  };
-
-  return (
-    <div className="space-y-4">
-      <div className="app-card p-6">
-        <h3 className="font-bold text-slate-800 mb-4 flex items-center gap-2">🤖 AI Assistant</h3>
-        <textarea 
-          value={prompt} 
-          onChange={e => setPrompt(e.target.value)} 
-          className="w-full bg-slate-50 border border-slate-100 rounded-2xl p-4 text-sm min-h-[100px] outline-none focus:border-blue-400 transition-all" 
-          placeholder="পাথর বা হিসাব নিয়ে প্রশ্ন করুন..." 
-        />
-        <button 
-          onClick={askAI} 
-          disabled={loading} 
-          className="w-full mt-3 bg-blue-600 text-white py-4 rounded-2xl font-bold shadow-lg active:scale-95 transition-all disabled:opacity-50"
-        >
-          {loading ? 'ভাবছি...' : t.ask}
-        </button>
-      </div>
-      {response && (
-        <div className="bg-blue-600 text-white p-6 rounded-3xl shadow-lg animate-fadeIn text-sm leading-relaxed whitespace-pre-wrap">
-          {response}
-        </div>
-      )}
-    </div>
-  );
 };
 
-const HistoryView = ({ t, history, setHistory }: any) => (
-  <div className="space-y-4">
-    <div className="flex justify-between items-center mb-2">
-      <h3 className="font-bold text-slate-800">{t.his}</h3>
-      {history.length > 0 && (
-        <button 
-          onClick={() => { if(confirm('সব মুছবেন?')) setHistory([]); }} 
-          className="text-[10px] font-bold text-red-500 uppercase bg-red-50 px-3 py-1.5 rounded-full border border-red-100"
-        >
-          Clear
-        </button>
-      )}
-    </div>
-    {history.length === 0 ? (
-      <div className="p-20 text-center text-slate-300 font-bold uppercase tracking-widest">{t.empty}</div>
-    ) : (
-      history.map((item: any) => (
-        <div key={item.id} className="app-card p-5 border border-slate-50 relative animate-fadeIn group">
-          <div className="flex justify-between items-start mb-2">
-            <span className="text-[10px] font-black bg-slate-100 px-2 py-0.5 rounded text-slate-500 uppercase">{item.type}</span>
-            <span className="text-[10px] text-slate-300">{item.time}</span>
-          </div>
-          <div className="text-sm font-bold text-slate-700 flex flex-wrap gap-2">
-            {item.results.pcs && <span className="bg-blue-50 text-blue-600 px-2 py-1 rounded-lg">পিস: {item.results.pcs}</span>}
-            {item.results.mur && <span className="bg-green-50 text-green-600 px-2 py-1 rounded-lg">মুরুব্বা: {item.results.mur.toFixed(2)}</span>}
-            {item.results.met && <span className="bg-amber-50 text-amber-600 px-2 py-1 rounded-lg">মিটার: {item.results.met.toFixed(2)}</span>}
-          </div>
-        </div>
-      ))
-    )}
-  </div>
-);
+const state = {
+    history: JSON.parse(localStorage.getItem('stone_history_v7') || '[]'),
+    mode: 'toMurubba', 
+    language: localStorage.getItem('stone_lang') || 'bn',
+    lastResult: null as any
+};
 
-const Input = ({ label, val, onChange, color = "text-slate-400", placeholder = "" }: any) => (
-  <div className="space-y-1">
-    <label className={`text-[10px] font-bold uppercase ${color}`}>{label}</label>
-    <input 
-      type="number" 
-      value={val} 
-      onChange={e => onChange(e.target.value)} 
-      placeholder={placeholder} 
-      className="input-box w-full p-4 outline-none" 
-    />
-  </div>
-);
+const app = {
+    init() {
+        this.setLanguage(state.language);
+        this.renderHistory();
+        // Set initial color variables
+        this.updateThemeColors('toMurubba');
+    },
 
-const rootElement = document.getElementById('root');
-if (rootElement) {
-  createRoot(rootElement).render(<App />);
-}
+    setLanguage(lang: string) {
+        state.language = lang;
+        localStorage.setItem('stone_lang', lang);
+        document.documentElement.lang = lang;
+        
+        const t = translations[lang] || translations.bn;
+        const mapping: any = {
+            'txt-app-title': t.appTitle,
+            'txt-brand': t.brand,
+            'txt-marquee': t.scrollingMsg,
+            'lbl-len': t.length,
+            'lbl-wid': t.width,
+            'lbl-thi': t.thickness,
+            'lbl-price': t.price,
+            'btn-calc': t.calculate,
+            'txt-res-murubba-lbl': t.totalMurubba,
+            'txt-res-pieces-lbl': t.totalPieces,
+            'txt-res-price-lbl': t.totalPrice,
+            'txt-ai-title': t.aiAdvice,
+            'ai-btn': t.getAdvice,
+            'txt-history-title': t.history,
+            'btn-clear': t.clear,
+            'txt-rights': t.rights
+        };
+
+        Object.keys(mapping).forEach(id => {
+            const el = document.getElementById(id);
+            if (el) el.innerText = mapping[id];
+        });
+
+        document.querySelectorAll('#mode-tabs button').forEach(btn => {
+            const key = btn.getAttribute('data-t');
+            if (key && t[key]) (btn as HTMLElement).innerText = t[key];
+        });
+
+        this.updateTargetLabel();
+    },
+
+    updateThemeColors(mode: string) {
+        const root = document.documentElement;
+        if (mode === 'toMurubba') {
+            root.style.setProperty('--theme-primary', '#10b981');
+            root.style.setProperty('--theme-dark', '#047857');
+            root.style.setProperty('--theme-light', '#f0fdf4');
+            root.style.setProperty('--theme-border', '#dcfce7');
+            root.style.setProperty('--theme-shadow', 'rgba(16, 185, 129, 0.3)');
+        } else if (mode === 'toPieces') {
+            root.style.setProperty('--theme-primary', '#3b82f6');
+            root.style.setProperty('--theme-dark', '#1d4ed8');
+            root.style.setProperty('--theme-light', '#eff6ff');
+            root.style.setProperty('--theme-border', '#dbeafe');
+            root.style.setProperty('--theme-shadow', 'rgba(59, 130, 246, 0.3)');
+        } else if (mode === 'toMeter') {
+            root.style.setProperty('--theme-primary', '#8b5cf6');
+            root.style.setProperty('--theme-dark', '#6d28d9');
+            root.style.setProperty('--theme-light', '#f5f3ff');
+            root.style.setProperty('--theme-border', '#ede9fe');
+            root.style.setProperty('--theme-shadow', 'rgba(139, 92, 246, 0.3)');
+        }
+    },
+
+    setMode(mode: string, btn: HTMLElement) {
+        state.mode = mode;
+        document.querySelectorAll('.mode-tab').forEach(t => t.classList.remove('active'));
+        btn.classList.add('active');
+        this.updateThemeColors(mode);
+        this.updateTargetLabel();
+        (document.getElementById('input-target') as HTMLInputElement).value = '';
+    },
+
+    updateTargetLabel() {
+        const label = document.getElementById('label-target');
+        const t = translations[state.language] || translations.bn;
+        if (label) {
+            if (state.mode === 'toMurubba') label.innerText = t.quantityPieces;
+            else if (state.mode === 'toPieces') label.innerText = t.quantityMurubba;
+            else if (state.mode === 'toMeter') label.innerText = t.quantityMeter;
+        }
+    },
+
+    calculate() {
+        const L = parseFloat((document.getElementById('input-len') as HTMLInputElement).value);
+        const W = parseFloat((document.getElementById('input-wid') as HTMLInputElement).value);
+        const target = parseFloat((document.getElementById('input-target') as HTMLInputElement).value) || 0;
+        const price = parseFloat((document.getElementById('input-price') as HTMLInputElement).value) || 0;
+
+        if (isNaN(L) || isNaN(W)) {
+            alert(state.language === 'bn' ? 'সঠিক মাপ দিন' : 'Enter dimensions');
+            return;
+        }
+
+        let murubba = 0, pieces = 0;
+        const areaOne = L * W;
+
+        if (state.mode === 'toMurubba') {
+            pieces = target || 1;
+            murubba = areaOne * pieces;
+        } else if (state.mode === 'toPieces') {
+            murubba = target;
+            pieces = areaOne > 0 ? Math.ceil(murubba / areaOne) : 0;
+        } else if (state.mode === 'toMeter') {
+            pieces = L > 0 ? Math.ceil(target / L) : 0;
+            murubba = pieces * areaOne;
+        }
+
+        const totalPrice = murubba * price;
+        const result = { L, W, murubba, pieces, totalPrice, time: new Date().toLocaleTimeString() };
+
+        state.lastResult = result;
+        this.renderResult(result);
+        
+        state.history = [result, ...state.history].slice(0, 15);
+        localStorage.setItem('stone_history_v7', JSON.stringify(state.history));
+        this.renderHistory();
+    },
+
+    renderResult(res: any) {
+        const resArea = document.getElementById('result-area');
+        if (resArea) resArea.classList.remove('hidden');
+        
+        (document.getElementById('res-murubba') as HTMLElement).innerText = res.murubba.toFixed(2);
+        (document.getElementById('res-pieces') as HTMLElement).innerText = res.pieces.toString();
+        (document.getElementById('res-total-price') as HTMLElement).innerHTML = `${res.totalPrice.toLocaleString()} <span class="text-3xl font-bold text-theme">TK</span>`;
+        
+        resArea?.scrollIntoView({ behavior: 'smooth' });
+    },
+
+    async getAIAdvice() {
+        if (!state.lastResult) return;
+        const btn = document.getElementById('ai-btn') as HTMLButtonElement;
+        const text = document.getElementById('ai-advice-text') as HTMLElement;
+        
+        btn.disabled = true;
+        text.classList.remove('hidden');
+        text.innerText = state.language === 'bn' ? 'AI বিশ্লেষণ করছে...' : 'AI Analyzing...';
+
+        try {
+            const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+            const prompt = `Stone Calculation analysis: Dimension ${state.lastResult.L}m x ${state.lastResult.W}m, Murubba: ${state.lastResult.murubba.toFixed(2)}. 
+            Please give 3 pro tips for stone setting in ${state.language === 'bn' ? 'Bengali' : 'English'}. Keep it short.`;
+            
+            const response = await ai.models.generateContent({
+                model: 'gemini-3-flash-preview',
+                contents: prompt
+            });
+            text.innerText = response.text || 'No advice found.';
+        } catch (e) {
+            text.innerText = 'পরামর্শ লোড করা সম্ভব হয়নি।';
+        } finally {
+            btn.disabled = false;
+        }
+    },
+
+    renderHistory() {
+        const list = document.getElementById('history-list');
+        if (!list) return;
+        
+        if (state.history.length === 0) {
+            list.innerHTML = '<div class="text-center py-10 text-slate-300 font-bold text-xs uppercase tracking-widest">ইতিহাস খালি</div>';
+            return;
+        }
+
+        list.innerHTML = state.history.map((h: any) => `
+            <div class="bg-white border border-slate-100 p-6 rounded-2xl flex items-center justify-between glowing-card animate-slide-up">
+                <div class="flex items-center gap-4">
+                    <div class="w-12 h-12 bg-theme-light rounded-xl flex items-center justify-center text-theme">
+                        <i class="fas fa-history"></i>
+                    </div>
+                    <div>
+                        <p class="text-sm font-black text-slate-800">${h.L}m × ${h.W}m</p>
+                        <p class="text-[9px] font-bold text-slate-400 uppercase tracking-wider">${h.time}</p>
+                    </div>
+                </div>
+                <div class="text-right">
+                    <p class="text-xl font-black text-theme-dark">${h.murubba.toFixed(1)}</p>
+                    <p class="text-[8px] font-black text-slate-300 uppercase tracking-widest">MURUBBA</p>
+                </div>
+            </div>
+        `).join('');
+    },
+
+    clearHistory() {
+        if (confirm(state.language === 'bn' ? 'সব ইতিহাস মুছবেন?' : 'Delete all history?')) {
+            state.history = [];
+            localStorage.setItem('stone_history_v7', JSON.stringify(state.history));
+            this.renderHistory();
+        }
+    },
+
+    share() {
+        if (!state.lastResult) return;
+        const res = state.lastResult;
+        const msg = `Stone Report: ${res.L}x${res.W}m | Murubba: ${res.murubba.toFixed(2)} | Price: ${res.totalPrice.toLocaleString()} TK - Karina Group`;
+        window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`);
+    }
+};
+
+(window as any).app = app;
+document.addEventListener('DOMContentLoaded', () => app.init());

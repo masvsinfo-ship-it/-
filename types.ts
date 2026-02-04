@@ -33,12 +33,14 @@ export interface UserProfile {
   mobile: string;
   name: string;
   isLoggedIn: boolean;
+  isAdmin?: boolean;
 }
 
 export interface ChatMessage {
   id: string;
-  sender: string;
+  senderName: string;
+  senderMobile: string;
+  recipientMobile: 'global' | string; // 'global' for community, mobile number for private
   text: string;
   timestamp: number;
-  isMine: boolean;
 }

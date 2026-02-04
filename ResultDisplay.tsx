@@ -1,7 +1,7 @@
 import React from 'react';
-// Fix: Removed .ts extension from import paths
-import { CalculationResult, Language } from '../types';
-import { translations } from '../translations';
+// Fix: Paths corrected from ../ to ./ because this file is in root
+import { CalculationResult, Language } from './types';
+import { translations } from './translations';
 
 interface Props {
   result: CalculationResult;
@@ -13,6 +13,7 @@ const ResultDisplay: React.FC<Props> = ({ result, themeColor, language }) => {
   const isToPieces = result.calcMode === 'toPieces';
   const isFromMeter = result.calcMode === 'toPiecesFromMeter';
   
+  // Use a fallback to ensure 't' is always defined correctly
   const t = translations[language as keyof typeof translations] || translations.bn;
 
   const themes = {
@@ -39,6 +40,7 @@ const ResultDisplay: React.FC<Props> = ({ result, themeColor, language }) => {
   const current = themes[themeColor];
   const formatNum = (num: number) => num.toLocaleString(undefined, { maximumFractionDigits: 2 });
 
+  // Determine which price label to use based on target context
   const priceLabel = isFromMeter ? t.priceByMeter : t.priceByMurubba;
 
   const shareToWhatsApp = () => {
@@ -49,7 +51,9 @@ const ResultDisplay: React.FC<Props> = ({ result, themeColor, language }) => {
 
   return (
     <div className="space-y-4 animate-slide-up">
+      {/* Primary Measurement Boxes */}
       <div className="grid grid-cols-2 gap-3 md:gap-4">
+        {/* Box 1: Units Result */}
         <div className={`${current.box1} rounded-[1.25rem] p-5 text-white shadow-xl shadow-slate-200/50 flex flex-col items-center justify-center text-center transition-transform active:scale-95 border-b-4 border-black/10`}>
           <span className="text-[10px] md:text-xs font-black uppercase tracking-widest opacity-80 mb-1.5">
             {(isToPieces || isFromMeter) ? t.totalPieces : t.totalMurubba}
@@ -64,6 +68,7 @@ const ResultDisplay: React.FC<Props> = ({ result, themeColor, language }) => {
           </div>
         </div>
 
+        {/* Box 2: Linear Meters (Always shown for reference) */}
         <div className="bg-white border-2 border-slate-100 rounded-[1.25rem] p-5 flex flex-col items-center justify-center text-center shadow-lg transition-transform active:scale-95">
           <span className="text-[10px] md:text-xs font-black text-slate-400 uppercase tracking-widest mb-1.5">
             {t.linear} ({t.meter})
@@ -77,6 +82,7 @@ const ResultDisplay: React.FC<Props> = ({ result, themeColor, language }) => {
         </div>
       </div>
 
+      {/* Target Price Box: Highlighted based on mode */}
       <div className={`${current.box2} rounded-[1.5rem] p-6 text-white shadow-2xl relative overflow-hidden group border-b-4 border-black/20`}>
         <div className="absolute top-0 right-0 p-4 opacity-5 pointer-events-none group-hover:scale-110 transition-transform">
           <i className="fas fa-coins text-7xl"></i>
@@ -95,6 +101,7 @@ const ResultDisplay: React.FC<Props> = ({ result, themeColor, language }) => {
         </div>
       </div>
 
+      {/* Tertiary Info Bar */}
       <div className="grid grid-cols-3 gap-2">
         {[
           { label: t.weight, val: result.estimatedWeightTon.toFixed(1) + ' ' + t.ton, color: 'bg-orange-50 text-orange-600' },

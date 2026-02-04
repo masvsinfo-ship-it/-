@@ -3,11 +3,11 @@ import react from '@vitejs/plugin-react';
 
 export default defineConfig({
   plugins: [react()],
-  base: './', // গিটহাবে সাব-ফোল্ডারে চললে এটি প্রয়োজন
+  base: './', // Ensures relative paths for GitHub Pages
   build: {
     outDir: 'dist',
     assetsDir: 'assets',
-    minify: 'terser',
+    emptyOutDir: true,
   },
   define: {
     'process.env': {

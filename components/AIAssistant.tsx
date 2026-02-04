@@ -1,8 +1,8 @@
+
 import React, { useState, useEffect } from 'react';
-// Fix: Removed .ts extension from import paths
-import { CalculationResult, Language } from '../types';
-import { getConstructionAdvice } from '../services/geminiService';
-import { translations } from '../translations';
+import { CalculationResult, Language } from '../types.ts';
+import { getConstructionAdvice } from '../services/geminiService.ts';
+import { translations } from '../translations.ts';
 
 interface Props {
   currentCalculation: CalculationResult | null;
@@ -13,7 +13,7 @@ const AIAssistant: React.FC<Props> = ({ currentCalculation, language }) => {
   const [advice, setAdvice] = useState<string | null>(null);
   const [loading, setLoading] = useState<boolean>(false);
 
-  const t = translations[language as keyof typeof translations] || translations.bn;
+  const t = translations[language];
 
   const fetchAdvice = async () => {
     if (!currentCalculation) return;

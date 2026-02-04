@@ -1,5 +1,5 @@
+
 import React from 'react';
-// Fix: Removed .ts extension from import paths
 import { Language } from '../types';
 import { translations } from '../translations';
 
@@ -39,6 +39,7 @@ const DeploymentGuide: React.FC<Props> = ({ language }) => {
       <div className="mt-6 flex flex-wrap gap-2">
         <a href="https://pages.cloudflare.com" target="_blank" className="px-3 py-1.5 bg-orange-50 text-orange-600 rounded-lg text-[10px] font-black uppercase tracking-widest border border-orange-100 hover:bg-orange-100 transition-colors">Cloudflare</a>
         <a href="https://vercel.com" target="_blank" className="px-3 py-1.5 bg-black text-white rounded-lg text-[10px] font-black uppercase tracking-widest hover:opacity-80 transition-opacity">Vercel</a>
+        <a href="https://surge.sh" target="_blank" className="px-3 py-1.5 bg-slate-800 text-white rounded-lg text-[10px] font-black uppercase tracking-widest hover:opacity-80 transition-opacity">Surge</a>
       </div>
     </div>
   );

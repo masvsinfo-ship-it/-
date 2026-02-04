@@ -1,5 +1,5 @@
+
 import React, { useState, useEffect } from 'react';
-// Fix: Removed .ts extension from import paths
 import { CalculationResult, CalcMode, Language } from '../types';
 import { translations } from '../translations';
 
@@ -18,6 +18,7 @@ const CalculatorCard: React.FC<Props> = ({ activeMode, onCalculate, themeColor, 
   const [targetValueInput, setTargetValueInput] = useState<string>('');
   const [unitPrice, setUnitPrice] = useState<string>('');
 
+  // Use a fallback to ensure 't' is always defined correctly
   const t = translations[language as keyof typeof translations] || translations.bn;
 
   useEffect(() => {
@@ -64,6 +65,7 @@ const CalculatorCard: React.FC<Props> = ({ activeMode, onCalculate, themeColor, 
 
     const totalVolumeM3 = q * volumeOnePieceM3;
     
+    // Calculate total price based on active mode context
     let totalPrice = 0;
     if (activeMode === 'toPiecesFromMeter') {
       totalPrice = tLinear * uPrice;

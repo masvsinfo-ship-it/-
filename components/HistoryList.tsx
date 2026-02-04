@@ -1,5 +1,5 @@
+
 import React from 'react';
-// Fix: Removed .ts extension from import paths
 import { HistoryItem, Language } from '../types';
 import { translations } from '../translations';
 
@@ -10,6 +10,7 @@ interface Props {
 }
 
 const HistoryList: React.FC<Props> = ({ items, onSelect, language }) => {
+  // Use a fallback to ensure 't' is always defined correctly
   const t = translations[language as keyof typeof translations] || translations.bn;
 
   if (items.length === 0) return (

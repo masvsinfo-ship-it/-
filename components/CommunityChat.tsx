@@ -1,5 +1,5 @@
+
 import React, { useState, useEffect, useRef } from 'react';
-// Fix: Removed .ts extension from import paths
 import { ChatMessage, Language, UserProfile } from '../types';
 import { translations } from '../translations';
 
@@ -15,6 +15,7 @@ const CommunityChat: React.FC<Props> = ({ language, user }) => {
   const t = translations[language as keyof typeof translations] || translations.bn;
 
   useEffect(() => {
+    // Initial dummy messages to simulate community
     const initial = [
       { id: '1', sender: 'Rahim Ali', text: 'ভাই, আজ মুরুব্বা দর কত যাচ্ছে?', timestamp: Date.now() - 100000, isMine: false },
       { id: '2', sender: 'Karim Stone', text: '৮৫ টাকা করে চলছে এখন।', timestamp: Date.now() - 50000, isMine: false },
@@ -40,6 +41,20 @@ const CommunityChat: React.FC<Props> = ({ language, user }) => {
 
     setMessages([...messages, newMessage]);
     setInputText('');
+
+    // Simulate AI response for specific keywords
+    if (inputText.includes('দর') || inputText.includes('price')) {
+      setTimeout(() => {
+        const aiResponse: ChatMessage = {
+          id: (Date.now() + 1).toString(),
+          sender: 'AI Mod',
+          text: 'পাথরের বর্তমান বাজার দর জানতে আপনার নিকটস্থ ডিলারের সাথে যোগাযোগ করুন। অথবা হিসাব দেখতে ক্যালকুলেটর ব্যবহার করুন।',
+          timestamp: Date.now(),
+          isMine: false
+        };
+        setMessages(prev => [...prev, aiResponse]);
+      }, 1500);
+    }
   };
 
   return (

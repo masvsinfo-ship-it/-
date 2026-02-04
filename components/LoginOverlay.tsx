@@ -1,5 +1,5 @@
+
 import React, { useState } from 'react';
-// Fix: Removed .ts extension from import paths
 import { Language, UserProfile } from '../types';
 import { translations } from '../translations';
 
@@ -29,22 +29,31 @@ const LoginOverlay: React.FC<Props> = ({ language, onLogin }) => {
         <div className="h-2 w-full bg-emerald-500"></div>
         <div className="p-8 md:p-10 space-y-8">
           <div className="text-center space-y-2">
-            <div className="w-16 h-16 bg-emerald-100 text-emerald-600 rounded-2xl flex items-center justify-center mx-auto mb-4 text-2xl">
+            <div className="w-16 h-16 bg-emerald-100 text-emerald-600 rounded-2xl flex items-center justify-center mx-auto mb-4 text-2xl shadow-inner">
               <i className="fas fa-user-plus"></i>
             </div>
             <h2 className="text-2xl font-black text-slate-800 uppercase tracking-tight">{t.loginTitle}</h2>
+            <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">{t.brand} Community</p>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-4">
-            <input
-              type="text" required value={name} onChange={(e) => setName(e.target.value)}
-              placeholder={t.enterName} className="w-full px-5 py-4 bg-slate-50 border-2 border-slate-100 rounded-2xl outline-none focus:bg-white focus:border-emerald-500 transition-all font-black text-lg"
-            />
-            <input
-              type="tel" required value={mobile} onChange={(e) => setMobile(e.target.value)}
-              placeholder={t.enterMobile} className="w-full px-5 py-4 bg-slate-50 border-2 border-slate-100 rounded-2xl outline-none focus:bg-white focus:border-emerald-500 transition-all font-black text-lg"
-            />
-            <button type="submit" className="w-full py-5 bg-emerald-600 text-white font-black text-xl rounded-2xl shadow-xl active:scale-[0.98]">
+            <div className="space-y-1.5">
+              <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">{t.enterName}</label>
+              <input
+                type="text" required value={name} onChange={(e) => setName(e.target.value)}
+                placeholder="Full Name" className="w-full px-5 py-4 bg-slate-50 border-2 border-slate-100 rounded-2xl outline-none focus:bg-white focus:border-emerald-500 transition-all font-black text-lg text-slate-700"
+              />
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">{t.enterMobile}</label>
+              <input
+                type="tel" required value={mobile} onChange={(e) => setMobile(e.target.value)}
+                placeholder="017XXXXXXXX" className="w-full px-5 py-4 bg-slate-50 border-2 border-slate-100 rounded-2xl outline-none focus:bg-white focus:border-emerald-500 transition-all font-black text-lg text-slate-700 tracking-widest"
+              />
+            </div>
+
+            <button type="submit" className="w-full py-5 bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xl rounded-2xl shadow-xl shadow-emerald-200 transition-all active:scale-[0.98]">
               {t.loginBtn}
             </button>
           </form>

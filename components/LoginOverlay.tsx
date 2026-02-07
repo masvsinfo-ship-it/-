@@ -15,6 +15,7 @@ const LoginOverlay: React.FC<Props> = ({ language, onLogin, allUsers }) => {
   const [name, setName] = useState('');
   const [adminPass, setAdminPass] = useState('');
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
+  const [isInstalled, setIsInstalled] = useState(false);
   
   const t = translations[language as keyof typeof translations] || translations.bn;
 
@@ -24,18 +25,30 @@ const LoginOverlay: React.FC<Props> = ({ language, onLogin, allUsers }) => {
       setDeferredPrompt(e);
     };
     window.addEventListener('beforeinstallprompt', handler);
+
+    // Check if already in standalone mode
+    if (window.matchMedia('(display-mode: standalone)').matches) {
+      setIsInstalled(true);
+    }
+
     return () => window.removeEventListener('beforeinstallprompt', handler);
   }, []);
 
   const handleInstall = async () => {
+    if (isInstalled) {
+      alert(language === 'bn' ? "অ্যাপটি অলরেডি ইন্সটল করা আছে!" : "App is already installed!");
+      return;
+    }
+    
     if (!deferredPrompt) {
-      alert(language === 'bn' ? "আপনার ব্রাউজার সরাসরি ডাউনলোড সাপোর্ট করছে না। ব্রাউজার মেনু থেকে 'Add to Home Screen' ক্লিক করুন।" : "Direct download not supported. Please use 'Add to Home Screen' from browser menu.");
+      alert(language === 'bn' ? "আপনার ব্রাউজার সরাসরি ডাউনলোড সাপোর্ট করছে না। ব্রাউজার মেনু থেকে 'Add to Home Screen' বা 'ইন্সটল অ্যাপ' ক্লিক করুন।" : "Direct download not supported. Please use 'Add to Home Screen' or 'Install App' from browser menu.");
       return;
     }
     deferredPrompt.prompt();
     const { outcome } = await deferredPrompt.userChoice;
     if (outcome === 'accepted') {
       setDeferredPrompt(null);
+      setIsInstalled(true);
     }
   };
 
@@ -78,14 +91,15 @@ const LoginOverlay: React.FC<Props> = ({ language, onLogin, allUsers }) => {
   const isBN = language === 'bn';
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-[100] flex flex-col items-center justify-center p-4">
       <div className="absolute inset-0 bg-slate-900/80 backdrop-blur-md"></div>
-      <div className="relative w-full max-w-md bg-white rounded-[2.5rem] shadow-2xl overflow-hidden animate-slide-up">
+      
+      <div className="relative w-full max-w-md bg-white rounded-[2.5rem] shadow-2xl overflow-hidden animate-slide-up flex flex-col">
         <div className={`h-2 w-full transition-colors duration-500 ${
           mode === 'signin' ? 'bg-emerald-500' : mode === 'signup' ? 'bg-blue-500' : 'bg-slate-800'
         }`}></div>
 
-        <div className="p-8 md:p-10 space-y-8">
+        <div className="p-8 md:p-10 space-y-6">
           <div className="text-center space-y-2">
             <div className={`w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4 text-2xl shadow-inner transition-all duration-500 ${
               mode === 'signin' ? 'bg-emerald-100 text-emerald-600' : 
@@ -118,7 +132,7 @@ const LoginOverlay: React.FC<Props> = ({ language, onLogin, allUsers }) => {
             ) : (
               <>
                 <div className="text-center px-4">
-                  <p className="text-[10px] font-black text-red-600 uppercase tracking-tighter animate-pulse">
+                  <p className="text-[10px] font-black text-red-600 uppercase tracking-tighter animate-pulse leading-relaxed">
                     {isBN ? '"এই মোবাইল নম্বরটিই আপনার একাউন্ট নম্বর হিসাবে থাকবে"' : '"This mobile number will serve as your account number"'}
                   </p>
                 </div>
@@ -144,7 +158,7 @@ const LoginOverlay: React.FC<Props> = ({ language, onLogin, allUsers }) => {
               </>
             )}
 
-            <button type="submit" className={`w-full py-5 text-white font-black text-xl rounded-2xl shadow-xl transition-all active:scale-[0.98] mt-4 ${
+            <button type="submit" className={`w-full py-5 text-white font-black text-xl rounded-2xl shadow-xl transition-all active:scale-[0.98] mt-2 ${
               mode === 'signin' ? 'bg-emerald-600 hover:bg-emerald-700 shadow-emerald-200' : 
               mode === 'signup' ? 'bg-blue-600 hover:bg-blue-700 shadow-blue-200' : 
               'bg-slate-800 hover:bg-slate-900 shadow-slate-200'
@@ -155,7 +169,7 @@ const LoginOverlay: React.FC<Props> = ({ language, onLogin, allUsers }) => {
             </button>
           </form>
           
-          <div className="pt-4 flex flex-col gap-4 text-center">
+          <div className="flex flex-col gap-3 text-center">
             {mode === 'signin' ? (
               <button 
                 onClick={() => setMode('signup')}
@@ -179,27 +193,35 @@ const LoginOverlay: React.FC<Props> = ({ language, onLogin, allUsers }) => {
               </button>
             )}
 
-            <div className="flex flex-col gap-2 border-t border-slate-50 pt-6">
+            {mode !== 'admin' && (
               <button 
-                onClick={handleInstall}
-                className="flex items-center justify-center gap-2 py-3.5 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all shadow-sm active:scale-95"
+                onClick={() => setMode('admin')}
+                className="text-[8px] font-black text-slate-300 uppercase tracking-[0.2em] hover:text-slate-500 transition-colors mt-2"
               >
-                <i className="fab fa-android text-base text-emerald-500"></i>
-                {isBN ? 'অ্যান্ড্রয়েড অ্যাপ ডাউনলোড করুন' : 'Download Android App'}
+                Admin Access
               </button>
-              
-              {mode !== 'admin' && (
-                <button 
-                  onClick={() => setMode('admin')}
-                  className="text-[8px] font-black text-slate-300 uppercase tracking-[0.2em] hover:text-slate-500 transition-colors"
-                >
-                  Admin Access
-                </button>
-              )}
-            </div>
+            )}
           </div>
         </div>
+
+        {/* Very bottom download section inside the card but distinct */}
+        <div className="mt-auto bg-slate-50 border-t border-slate-100 p-6 flex flex-col items-center gap-3">
+          <button 
+            onClick={handleInstall}
+            className="w-full flex items-center justify-center gap-3 py-4 bg-emerald-500 hover:bg-emerald-600 text-white rounded-2xl text-[11px] font-black uppercase tracking-widest transition-all shadow-lg shadow-emerald-200 active:scale-95"
+          >
+            <i className="fab fa-android text-lg"></i>
+            {isBN ? 'অ্যান্ড্রয়েড অ্যাপ ডাউনলোড করুন' : 'Download Android App'}
+          </button>
+          <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest text-center">
+            {isBN ? 'মোবাইলে সহজে ব্যবহারের জন্য ইন্সটল করুন' : 'Install for easier mobile access'}
+          </p>
+        </div>
       </div>
+
+      <p className="mt-6 text-[9px] font-black text-white/30 uppercase tracking-[0.5em]">
+        {t.brand} Digital Solutions
+      </p>
     </div>
   );
 };

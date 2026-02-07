@@ -14,8 +14,30 @@ const LoginOverlay: React.FC<Props> = ({ language, onLogin, allUsers }) => {
   const [mobile, setMobile] = useState('');
   const [name, setName] = useState('');
   const [adminPass, setAdminPass] = useState('');
+  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
   
   const t = translations[language as keyof typeof translations] || translations.bn;
+
+  useEffect(() => {
+    const handler = (e: any) => {
+      e.preventDefault();
+      setDeferredPrompt(e);
+    };
+    window.addEventListener('beforeinstallprompt', handler);
+    return () => window.removeEventListener('beforeinstallprompt', handler);
+  }, []);
+
+  const handleInstall = async () => {
+    if (!deferredPrompt) {
+      alert(language === 'bn' ? "আপনার ব্রাউজার সরাসরি ডাউনলোড সাপোর্ট করছে না। ব্রাউজার মেনু থেকে 'Add to Home Screen' ক্লিক করুন।" : "Direct download not supported. Please use 'Add to Home Screen' from browser menu.");
+      return;
+    }
+    deferredPrompt.prompt();
+    const { outcome } = await deferredPrompt.userChoice;
+    if (outcome === 'accepted') {
+      setDeferredPrompt(null);
+    }
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -30,8 +52,9 @@ const LoginOverlay: React.FC<Props> = ({ language, onLogin, allUsers }) => {
       return;
     }
 
-    if (cleanMobile.length < 9) {
-      alert(language === 'bn' ? "সঠিক সৌদি মোবাইল নম্বর দিন" : "Provide correct Saudi Mobile Number");
+    // Relaxed validation: just check if there is some input
+    if (cleanMobile.length < 5) {
+      alert(language === 'bn' ? "সঠিক মোবাইল নম্বর দিন" : "Provide correct mobile number");
       return;
     }
 
@@ -44,7 +67,6 @@ const LoginOverlay: React.FC<Props> = ({ language, onLogin, allUsers }) => {
         setMode('signup');
       }
     } else {
-      // Signup Mode
       if (!name.trim()) {
         alert(language === 'bn' ? "আপনার নাম লিখুন" : "Please enter your name");
         return;
@@ -59,7 +81,6 @@ const LoginOverlay: React.FC<Props> = ({ language, onLogin, allUsers }) => {
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-slate-900/80 backdrop-blur-md"></div>
       <div className="relative w-full max-w-md bg-white rounded-[2.5rem] shadow-2xl overflow-hidden animate-slide-up">
-        {/* Progress Bar Decor */}
         <div className={`h-2 w-full transition-colors duration-500 ${
           mode === 'signin' ? 'bg-emerald-500' : mode === 'signup' ? 'bg-blue-500' : 'bg-slate-800'
         }`}></div>
@@ -96,6 +117,12 @@ const LoginOverlay: React.FC<Props> = ({ language, onLogin, allUsers }) => {
               </div>
             ) : (
               <>
+                <div className="text-center px-4">
+                  <p className="text-[10px] font-black text-red-600 uppercase tracking-tighter animate-pulse">
+                    {isBN ? '"এই মোবাইল নম্বরটিই আপনার একাউন্ট নম্বর হিসাবে থাকবে"' : '"This mobile number will serve as your account number"'}
+                  </p>
+                </div>
+
                 {mode === 'signup' && (
                   <div className="space-y-1.5 animate-in fade-in slide-in-from-top-2">
                     <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">{t.enterName}</label>
@@ -109,7 +136,7 @@ const LoginOverlay: React.FC<Props> = ({ language, onLogin, allUsers }) => {
                   <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">{t.enterMobile}</label>
                   <input
                     type="tel" required value={mobile} onChange={(e) => setMobile(e.target.value)}
-                    placeholder="+966 5XXXXXXXX" className={`w-full px-5 py-4 bg-slate-50 border-2 border-slate-100 rounded-2xl outline-none focus:bg-white transition-all font-black text-lg text-slate-700 tracking-widest ${
+                    placeholder="01XXXXXXXXX" className={`w-full px-5 py-4 bg-slate-50 border-2 border-slate-100 rounded-2xl outline-none focus:bg-white transition-all font-black text-lg text-slate-700 tracking-widest ${
                       mode === 'signin' ? 'focus:border-emerald-500' : 'focus:border-blue-500'
                     }`}
                   />
@@ -128,7 +155,7 @@ const LoginOverlay: React.FC<Props> = ({ language, onLogin, allUsers }) => {
             </button>
           </form>
           
-          <div className="pt-4 flex flex-col gap-3 text-center">
+          <div className="pt-4 flex flex-col gap-4 text-center">
             {mode === 'signin' ? (
               <button 
                 onClick={() => setMode('signup')}
@@ -152,14 +179,24 @@ const LoginOverlay: React.FC<Props> = ({ language, onLogin, allUsers }) => {
               </button>
             )}
 
-            {mode !== 'admin' && (
+            <div className="flex flex-col gap-2 border-t border-slate-50 pt-6">
               <button 
-                onClick={() => setMode('admin')}
-                className="text-[9px] font-black text-slate-300 uppercase tracking-[0.2em] hover:text-slate-500 transition-colors"
+                onClick={handleInstall}
+                className="flex items-center justify-center gap-2 py-3.5 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all shadow-sm active:scale-95"
               >
-                Admin Login
+                <i className="fab fa-android text-base text-emerald-500"></i>
+                {isBN ? 'অ্যান্ড্রয়েড অ্যাপ ডাউনলোড করুন' : 'Download Android App'}
               </button>
-            )}
+              
+              {mode !== 'admin' && (
+                <button 
+                  onClick={() => setMode('admin')}
+                  className="text-[8px] font-black text-slate-300 uppercase tracking-[0.2em] hover:text-slate-500 transition-colors"
+                >
+                  Admin Access
+                </button>
+              )}
+            </div>
           </div>
         </div>
       </div>
